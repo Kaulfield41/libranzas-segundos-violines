@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(npx create-vite@latest . --template react)",
+      "Bash(mkdir *)",
+      "Bash(cp -r \"/Users/csl/Desktop/App libranzas/temp_project/myapp/.\" \"/Users/csl/Desktop/App libranzas/\")",
+      "Bash(rm -rf \"/Users/csl/Desktop/App libranzas/temp_project\")",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/csl/.npm/bin/**)",
+      "Read(//usr/local/**)",
+      "Bash(sudo npm *)",
+      "Bash(firebase deploy *)"
+    ]
+  }
+}
