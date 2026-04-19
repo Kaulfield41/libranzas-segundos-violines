@@ -31,52 +31,8 @@ En Firestore → Reglas, pega esto:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Solo usuarios autenticados pueden leer/escribir
-    function isAuth() {
-      return request.auth != null;
-    }
-
-    // Solo el admin puede escribir
-    function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
-    }
-
-    // Músicos solo pueden leer sus propias libranzas
-    match /libranzas/{id} {
-      allow read: if isAuth() && (isAdmin() || resource.data.musicoId == request.auth.uid);
-      allow write: if isAdmin();
-    }
-
-    // Solo admins escriben, todos los autenticados leen proyectos
-    match /proyectos/{id} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    match /temporadas/{id} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    match /conciertos/{id} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    match /rotaciones/{id} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
-    }
-
-    match /historial/{id} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-    }
-
-    match /usuarios/{uid} {
-      allow read: if isAuth() && (isAdmin() || request.auth.uid == uid);
-      allow write: if isAdmin();
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
