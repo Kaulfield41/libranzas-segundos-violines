@@ -1,16 +1,35 @@
-# React + Vite
+# App Libranzas
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web PWA para gestionar las **libranzas** (turnos de descanso) de los músicos de una orquesta sinfónica. Automatiza la rotación equitativa de quién libra en cada proyecto, parte u obra de un concierto, respetando reglas de puestos de responsabilidad, permisos, bajas e intercambios entre músicos.
 
-Currently, two official plugins are available:
+## ¿Qué problema resuelve?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+En una orquesta, no todos los músicos tocan en todos los conciertos. Hay que distribuir los descansos de forma justa y ordenada, teniendo en cuenta:
 
-## React Compiler
+- Que siempre quede un mínimo de solistas y ayudas de solista tocando.
+- Que los músicos con permiso o baja no pierdan su turno en la cola.
+- Que los intercambios entre músicos (A cede su turno a B) queden registrados y se salden automáticamente.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Roles
 
-## Expanding the ESLint configuration
+| Rol | Acceso |
+|---|---|
+| `admin` | Gestión completa: músicos, temporadas, proyectos, rotaciones |
+| `musico` | Consulta sus propias libranzas |
+| `observador` | Solo lectura |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Stack
+
+- React 19 + Vite + Tailwind CSS v4
+- Firebase (Auth, Firestore, Hosting)
+- react-router-dom v7
+- PWA con actualización automática (vite-plugin-pwa)
+- date-fns con locale `es`
+
+## Desarrollo local
+
+```bash
+cp .env.example .env   # añadir claves de Firebase
+npm install
+npm run dev
+```
