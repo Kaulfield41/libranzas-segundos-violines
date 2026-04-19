@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 58">
+  <!-- Background -->
+  <rect width="40" height="58" fill="#ffffff"/>
   <!-- Body -->
   <path d="M18 24 L22 24 C28 24 33 27 33 31 C33 35 28 36 28 39 C28 42 33 44 33 48 C33 53 27 56 20 56 C13 56 7 53 7 48 C7 44 12 42 12 39 C12 36 7 35 7 31 C7 27 12 24 18 24Z" fill="#C17F3A" stroke="#8B4513" stroke-width="0.8" stroke-linejoin="round"/>
   <!-- Neck -->
