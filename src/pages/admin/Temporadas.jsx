@@ -2,26 +2,35 @@ import { useEffect, useState } from 'react'
 import { collection, addDoc, updateDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import { useAuth } from '../../context/AuthContext'
-import { obtenerMusicos } from '../../services/libranzas'
+import { obtenerMusicos, obtenerProyectos } from '../../services/libranzas'
 import { inicializarRotacion } from '../../services/rotacion'
 import { registrarHistorial, ACCIONES } from '../../services/historial'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Temporadas() {
   const { usuario: admin } = useAuth()
+  const navigate = useNavigate()
   const [temporadas, setTemporadas] = useState([])
+  const [proyectosPorTemporada, setProyectosPorTemporada] = useState({})
   const [musicos, setMusicos] = useState([])
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '' })
   const [ordenMusicos, setOrdenMusicos] = useState([])
-  const [paso, setPaso] = useState(1) // 1: datos, 2: orden rotación
+  const [paso, setPaso] = useState(1)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
   async function cargar() {
     const snap = await getDocs(query(collection(db, 'temporadas'), orderBy('fechaInicio', 'desc')))
-    setTemporadas(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    const ts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    setTemporadas(ts)
+    const mapa = {}
+    await Promise.all(ts.map(async t => {
+      mapa[t.id] = await obtenerProyectos(t.id)
+    }))
+    setProyectosPorTemporada(mapa)
     const ms = await obtenerMusicos()
     setMusicos(ms)
     setOrdenMusicos(ms.map(m => m.id))
@@ -84,24 +93,63 @@ export default function Temporadas() {
         </button>
       </div>
 
-      <div className="space-y-2">
-        {temporadas.map(t => (
-          <div key={t.id} className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-800">{t.nombre}</p>
-              {t.fechaInicio && (
-                <p className="text-xs text-slate-400">
-                  {format(t.fechaInicio.toDate?.() || new Date(t.fechaInicio), "MMM yyyy", { locale: es })}
-                  {' – '}
-                  {t.fechaFin ? format(t.fechaFin.toDate?.() || new Date(t.fechaFin), "MMM yyyy", { locale: es }) : '—'}
-                </p>
+      <div className="space-y-3">
+        {temporadas.map(t => {
+          const proyectos = proyectosPorTemporada[t.id] || []
+          return (
+            <div key={t.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              {/* Cabecera temporada */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-800">{t.nombre}</p>
+                  {t.fechaInicio && (
+                    <p className="text-xs text-slate-400">
+                      {format(t.fechaInicio.toDate?.() || new Date(t.fechaInicio), "MMM yyyy", { locale: es })}
+                      {' – '}
+                      {t.fechaFin ? format(t.fechaFin.toDate?.() || new Date(t.fechaFin), "MMM yyyy", { locale: es }) : '—'}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {t.activa && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Activa</span>
+                  )}
+                  {t.activa && (
+                    <button
+                      onClick={() => navigate('/admin/proyectos/nuevo')}
+                      className="text-xs bg-blue-900 text-white px-2.5 py-1 rounded-lg font-medium"
+                    >
+                      + Proyecto
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Proyectos de la temporada */}
+              {proyectos.length === 0 ? (
+                <p className="text-xs text-slate-400 px-4 py-3 text-center">Sin proyectos</p>
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {proyectos.map(p => (
+                    <Link
+                      key={p.id}
+                      to={`/admin/proyectos/${p.id}`}
+                      className="flex items-center gap-3 px-4 py-2.5 active:bg-slate-50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700 truncate">{p.nombre}</p>
+                        <p className="text-xs text-slate-400">
+                          {p.fechaInicio ? format(p.fechaInicio.toDate(), "d MMM yyyy", { locale: es }) : '—'}
+                        </p>
+                      </div>
+                      <span className="text-slate-300 text-sm">›</span>
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
-            {t.activa && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Activa</span>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Modal */}
