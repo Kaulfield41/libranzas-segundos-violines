@@ -151,14 +151,23 @@ export default function ProyectoDetalle() {
           <div className="divide-y divide-slate-50">
             {libranzas.map(lib => {
               const m = musicos.find(m => m.id === lib.musicoId)
+              const permiso = lib.esPermiso
+                ? { motivo: lib.motivoPermiso }
+                : (proyecto.permisosBajas || []).find(p => p.musicoId === lib.musicoId)
               return (
                 <div key={lib.id} className="flex items-center gap-2 px-4 py-2.5">
                   <span className="flex-1 text-sm text-slate-700">
                     {m ? `${m.apellidos}, ${m.nombre}` : lib.musicoId}
                   </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BADGE[lib.tipo]}`}>
-                    {lib.tipo === 'proyecto' ? '😊 Proyecto' : lib.tipo === 'parte' ? `Parte ${lib.parteNumero}` : `${lib.obraTitulo || 'Obra'}${lib.parteNumero ? ` (P${lib.parteNumero})` : ''}`}
-                  </span>
+                  {permiso ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">
+                      {permiso.motivo ? `Permiso: ${permiso.motivo}` : 'Permiso / Baja'}
+                    </span>
+                  ) : (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BADGE[lib.tipo]}`}>
+                      {lib.tipo === 'proyecto' ? '😊 Proyecto' : lib.tipo === 'parte' ? `Parte ${lib.parteNumero}` : `${lib.obraTitulo || 'Obra'}${lib.parteNumero ? ` (P${lib.parteNumero})` : ''}`}
+                    </span>
+                  )}
                 </div>
               )
             })}

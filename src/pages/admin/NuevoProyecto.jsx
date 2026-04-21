@@ -5,7 +5,7 @@ import { obtenerTemporadaActiva, obtenerMusicos, crearProyecto } from '../../ser
 import { calcularLibranzas, TIPOS_LIBRANZA } from '../../services/rotacion'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../services/firebase'
-import { crearLibranzasLote } from '../../services/libranzas'
+import { crearLibranzasLote, crearLibranzasPermiso } from '../../services/libranzas'
 
 const obraVacia = () => ({ titulo: '', compositor: '', musicosNecesarios: '' })
 const parteVacia = () => ({ musicosNecesarios: '', obras: [obraVacia()] })
@@ -289,6 +289,23 @@ export default function NuevoProyecto() {
           `${admin.nombre} ${admin.apellidos}`,
           null,
           { deudasNuevas: sec.deudasNuevas || [], deudasResueltas: sec.deudasResueltas || [], intercambiosProyecto: form.intercambios.filter(i => i.musicoA && i.musicoB), uidsPermiso: [...form.permisosBajas.map(p => p.musicoId), ...(sec.uidsYaLibrando || [])] }
+        )
+      }
+
+      // 4. Crear libranzas por permiso/baja
+      if (form.permisosBajas.length > 0) {
+        await crearLibranzasPermiso(
+          form.permisosBajas.map(p => ({
+            musicoId: p.musicoId,
+            proyectoId,
+            temporadaId: temporada.id,
+            tipo: 'proyecto',
+            conciertoId: conciertoId || null,
+            motivoPermiso: p.motivo || '',
+            musicosNecesarios: form.musicosNecesarios ? parseInt(form.musicosNecesarios) : null,
+          })),
+          admin.id,
+          `${admin.nombre} ${admin.apellidos}`
         )
       }
 

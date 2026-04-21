@@ -141,6 +141,18 @@ export async function obtenerLibranzasMusico(musicoId, temporadaId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
+export async function crearLibranzasPermiso(libranzas, adminId, adminNombre) {
+  for (const datos of libranzas) {
+    await addDoc(collection(db, 'libranzas'), {
+      ...datos,
+      esPermiso: true,
+      asignadaPor: adminId,
+      fechaAsignacion: serverTimestamp(),
+      esPendienteResuelta: false,
+    })
+  }
+}
+
 export async function crearLibranza(datos, adminId, adminNombre, motivo) {
   const ref = await addDoc(collection(db, 'libranzas'), {
     ...datos,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { obtenerProyecto, actualizarProyecto, eliminarProyecto, obtenerMusicos, obtenerLibranzasProyecto, crearLibranzasLote } from '../../services/libranzas'
+import { obtenerProyecto, actualizarProyecto, eliminarProyecto, obtenerMusicos, obtenerLibranzasProyecto, crearLibranzasLote, crearLibranzasPermiso } from '../../services/libranzas'
 import { calcularLibranzas, TIPOS_LIBRANZA } from '../../services/rotacion'
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../services/firebase'
