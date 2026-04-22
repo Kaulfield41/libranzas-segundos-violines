@@ -71,11 +71,9 @@ export default function Proyectos() {
                     : p.fechaInicio ? ` (${format(p.fechaInicio.toDate(), "yyyy", { locale: es })})` : ''}
                 </p>
               </div>
-              {p.musicosNecesarios && (
-                <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                  {p.musicosNecesarios} músicos
-                </span>
-              )}
+              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                {p.musicosNecesarios ? `${p.musicosNecesarios} músicos` : 'Plantilla completa'}
+              </span>
               <span className="text-slate-300">›</span>
             </Link>
           ))}

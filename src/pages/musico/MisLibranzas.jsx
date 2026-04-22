@@ -25,10 +25,7 @@ export default function MisLibranzas() {
         if (!t) { setCargando(false); return }
         setTemporada(t)
 
-        const [proys, ms] = await Promise.all([
-          obtenerProyectos(t.id),
-          obtenerMusicos(),
-        ])
+        const [proys, ms] = await Promise.all([obtenerProyectos(t.id), obtenerMusicos()])
         const proyOrdenados = proys.sort((a, b) => (a.fechaInicio?.toDate?.() || 0) - (b.fechaInicio?.toDate?.() || 0))
         setProyectos(proyOrdenados)
         setMusicos(ms)
@@ -74,7 +71,7 @@ export default function MisLibranzas() {
   return (
     <div className="p-4 max-w-lg mx-auto">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-slate-800">Proyectos</h2>
+        <h2 className="text-lg font-semibold text-slate-800">Libranzas</h2>
         <p className="text-sm text-slate-500">Temporada {temporada.nombre}</p>
       </div>
 

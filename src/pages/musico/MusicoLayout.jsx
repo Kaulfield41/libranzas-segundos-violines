@@ -2,7 +2,7 @@ import { Outlet, useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 const navItems = [
-  { to: '/musico', label: 'Proyectos', icon: '🎻', end: true },
+  { to: '/musico', label: 'Libranzas', icon: '🎻', end: true },
   { to: '/musico/rotacion', label: 'Rotación', icon: '🔄' },
 ]
 

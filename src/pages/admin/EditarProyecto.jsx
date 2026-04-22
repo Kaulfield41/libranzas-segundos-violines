@@ -26,15 +26,13 @@ export default function EditarProyecto() {
 
   const [form, setForm] = useState({
     nombre: '', descripcion: '', fechaInicio: '', fechaFin: '', musicosNecesarios: '',
+    refuerzos: '',
     permisosBajas: [],
     intercambios: [],
   })
   const [concierto, setConcierto] = useState({
     fecha: '', hora: '',
-    partes: [
-      { musicosNecesarios: '', obras: [obraVacia()] },
-      { musicosNecesarios: '', obras: [obraVacia()] },
-    ],
+    partes: [{ musicosNecesarios: '', obras: [obraVacia()] }],
   })
 
   useEffect(() => {
@@ -49,6 +47,7 @@ export default function EditarProyecto() {
           fechaInicio: p.fechaInicio ? toInputDate(p.fechaInicio) : '',
           fechaFin: p.fechaFin ? toInputDate(p.fechaFin) : '',
           musicosNecesarios: p.musicosNecesarios || '',
+          refuerzos: p.refuerzos || '',
           permisosBajas: p.permisosBajas || [],
           intercambios: p.intercambios || [],
         })
@@ -61,15 +60,12 @@ export default function EditarProyecto() {
           setConcierto({
             fecha: c.fecha ? toInputDate(c.fecha) : '',
             hora: c.hora || '',
-            partes: [0, 1].map(pi => {
-              const parte = c.partes?.[pi]
-              return {
-                musicosNecesarios: parte?.musicosNecesarios || '',
-                obras: parte?.obras?.length > 0
-                  ? parte.obras.map(o => ({ titulo: o.titulo || '', compositor: o.compositor || '', musicosNecesarios: o.musicosNecesarios || '' }))
-                  : [obraVacia()],
-              }
-            }),
+            partes: (c.partes?.length > 0 ? c.partes : [{}]).map(parte => ({
+              musicosNecesarios: parte?.musicosNecesarios || '',
+              obras: parte?.obras?.length > 0
+                ? parte.obras.map(o => ({ titulo: o.titulo || '', compositor: o.compositor || '', musicosNecesarios: o.musicosNecesarios || '' }))
+                : [obraVacia()],
+            })),
           })
         }
 
@@ -114,6 +110,14 @@ export default function EditarProyecto() {
       partes[pi] = { ...partes[pi], obras: [...partes[pi].obras, obraVacia()] }
       return { ...c, partes }
     })
+  }
+
+  function addParte() {
+    setConcierto(c => ({ ...c, partes: [...c.partes, { musicosNecesarios: '', obras: [obraVacia()] }] }))
+  }
+
+  function removeParte(pi) {
+    setConcierto(c => ({ ...c, partes: c.partes.filter((_, i) => i !== pi) }))
   }
 
   function removeObra(pi, oi) {
@@ -174,7 +178,7 @@ export default function EditarProyecto() {
         if (yaAsignadas < numNecesarias) {
           const calc = await calcularLibranzas({
             temporadaId, tipo: TIPOS_LIBRANZA.PROYECTO,
-            totalSeccion: ms.length, musicosNecesarios: mn, musicos: ms,
+            totalSeccion: ms.length + (parseInt(form.refuerzos) || 0), musicosNecesarios: mn, musicos: ms,
             yaLibrando: yaLibranProyecto, intercambiosProyecto: intercambiosValidos,
           })
           if (calc.asignados.length > 0) {
@@ -194,7 +198,7 @@ export default function EditarProyecto() {
           if (yaAsignadas < numNecesarias) {
             const calc = await calcularLibranzas({
               temporadaId, tipo: TIPOS_LIBRANZA.PARTE,
-              totalSeccion: ms.length, musicosNecesarios: mn, musicos: ms,
+              totalSeccion: ms.length + (parseInt(form.refuerzos) || 0), musicosNecesarios: mn, musicos: ms,
               yaLibrando: [...yaLibranProyecto, ...yaLibranParte], intercambiosProyecto: intercambiosValidos,
             })
             if (calc.asignados.length > 0) {
@@ -212,7 +216,7 @@ export default function EditarProyecto() {
           if (yaLibranObra.length < numNecesarias) {
             const calc = await calcularLibranzas({
               temporadaId, tipo: TIPOS_LIBRANZA.OBRA,
-              totalSeccion: ms.length, musicosNecesarios: mn, musicos: ms,
+              totalSeccion: ms.length + (parseInt(form.refuerzos) || 0), musicosNecesarios: mn, musicos: ms,
               yaLibrando: [...yaLibranProyecto, ...yaLibranParte, ...yaLibranObra], intercambiosProyecto: intercambiosValidos,
             })
             if (calc.asignados.length > 0) {
@@ -242,6 +246,7 @@ export default function EditarProyecto() {
         fechaInicio: new Date(form.fechaInicio),
         fechaFin: form.fechaFin ? new Date(form.fechaFin) : new Date(form.fechaInicio),
         musicosNecesarios: form.musicosNecesarios ? parseInt(form.musicosNecesarios) : null,
+        refuerzos: form.refuerzos ? parseInt(form.refuerzos) : 0,
       }, admin.id, `${admin.nombre} ${admin.apellidos}`, 'Edición del proyecto')
 
       // Actualizar o crear concierto
@@ -356,6 +361,12 @@ export default function EditarProyecto() {
               placeholder="Dejar vacío si todos tocan" value={form.musicosNecesarios}
               onChange={e => setForm(f => ({ ...f, musicosNecesarios: e.target.value }))} />
           </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Refuerzos (violinistas externos en este proyecto)</label>
+            <input type="number" min="0" max="10" className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm"
+              placeholder="0 — dejar vacío si no hay refuerzos"
+              value={form.refuerzos} onChange={e => setForm(f => ({ ...f, refuerzos: e.target.value }))} />
+          </div>
           {musicos.length > 0 && (
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Permisos / Bajas en este proyecto</label>
@@ -468,8 +479,11 @@ export default function EditarProyecto() {
 
           {concierto.partes.map((parte, pi) => (
             <div key={pi} className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-700">Parte {pi + 1}</p>
+                {pi > 0 && (
+                  <button onClick={() => removeParte(pi)} className="text-xs text-red-500">Quitar parte</button>
+                )}
               </div>
               <div className="p-3 space-y-2">
                 <div>
@@ -507,6 +521,10 @@ export default function EditarProyecto() {
               </div>
             </div>
           ))}
+
+          {concierto.partes.length < 2 && (
+            <button onClick={addParte} className="text-xs text-blue-700 font-medium">+ Añadir segunda parte</button>
+          )}
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 

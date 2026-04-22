@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, addDoc, updateDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import { useAuth } from '../../context/AuthContext'
 import { obtenerMusicos, obtenerProyectos } from '../../services/libranzas'
@@ -13,8 +13,9 @@ export default function Temporadas() {
   const { usuario: admin } = useAuth()
   const navigate = useNavigate()
   const [temporadas, setTemporadas] = useState([])
-  const [proyectosPorTemporada, setProyectosPorTemporada] = useState({})
   const [musicos, setMusicos] = useState([])
+
+  // Modal nueva temporada
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '' })
   const [ordenMusicos, setOrdenMusicos] = useState([])
@@ -22,18 +23,28 @@ export default function Temporadas() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
+  // Modal editar temporada
+  const [editando, setEditando] = useState(null) // temporada seleccionada
+  const [formEditar, setFormEditar] = useState({ nombre: '', fechaInicio: '', fechaFin: '' })
+  const [guardandoEditar, setGuardandoEditar] = useState(false)
+  const [confirmBorrar, setConfirmBorrar] = useState(false)
+  const [borrando, setBorrando] = useState(false)
+
   async function cargar() {
-    const snap = await getDocs(query(collection(db, 'temporadas'), orderBy('fechaInicio', 'desc')))
-    const ts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    setTemporadas(ts)
-    const mapa = {}
-    await Promise.all(ts.map(async t => {
-      mapa[t.id] = await obtenerProyectos(t.id)
-    }))
-    setProyectosPorTemporada(mapa)
-    const ms = await obtenerMusicos()
-    setMusicos(ms)
-    setOrdenMusicos(ms.map(m => m.id))
+    try {
+      const snap = await getDocs(query(collection(db, 'temporadas'), orderBy('fechaInicio', 'desc')))
+      const ts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const tsConProyectos = await Promise.all(ts.map(async t => ({
+        ...t,
+        proyectos: await obtenerProyectos(t.id).catch(() => [])
+      })))
+      setTemporadas(tsConProyectos)
+      const ms = await obtenerMusicos()
+      setMusicos(ms)
+      setOrdenMusicos(ms.map(m => m.id))
+    } catch (e) {
+      console.error('Error cargando:', e)
+    }
   }
 
   useEffect(() => { cargar() }, [])
@@ -50,7 +61,6 @@ export default function Temporadas() {
     setGuardando(true)
     setError('')
     try {
-      // Desactivar temporadas anteriores
       for (const t of temporadas.filter(t => t.activa)) {
         await updateDoc(doc(db, 'temporadas', t.id), { activa: false })
       }
@@ -81,6 +91,84 @@ export default function Temporadas() {
     }
   }
 
+  function abrirEditar(t) {
+    setEditando(t)
+    setFormEditar({
+      nombre: t.nombre,
+      fechaInicio: t.fechaInicio ? format(t.fechaInicio.toDate?.() || new Date(t.fechaInicio), 'yyyy-MM-dd') : '',
+      fechaFin: t.fechaFin ? format(t.fechaFin.toDate?.() || new Date(t.fechaFin), 'yyyy-MM-dd') : '',
+    })
+    setConfirmBorrar(false)
+  }
+
+  async function guardarEditar() {
+    setGuardandoEditar(true)
+    try {
+      await updateDoc(doc(db, 'temporadas', editando.id), {
+        nombre: formEditar.nombre,
+        fechaInicio: new Date(formEditar.fechaInicio),
+        fechaFin: new Date(formEditar.fechaFin),
+      })
+      await cargar()
+      setEditando(null)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setGuardandoEditar(false)
+    }
+  }
+
+  async function activarTemporada() {
+    setGuardandoEditar(true)
+    try {
+      for (const t of temporadas.filter(t => t.activa)) {
+        await updateDoc(doc(db, 'temporadas', t.id), { activa: false })
+      }
+      await updateDoc(doc(db, 'temporadas', editando.id), { activa: true })
+      await cargar()
+      setEditando(null)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setGuardandoEditar(false)
+    }
+  }
+
+  async function borrarTemporada() {
+    setBorrando(true)
+    try {
+      const tid = editando.id
+
+      // Borrar libranzas
+      const libSnap = await getDocs(query(collection(db, 'libranzas'), where('temporadaId', '==', tid)))
+      await Promise.all(libSnap.docs.map(d => deleteDoc(d.ref)))
+
+      // Borrar conciertos
+      const conSnap = await getDocs(query(collection(db, 'conciertos'), where('temporadaId', '==', tid)))
+      await Promise.all(conSnap.docs.map(d => deleteDoc(d.ref)))
+
+      // Borrar proyectos
+      const proSnap = await getDocs(query(collection(db, 'proyectos'), where('temporadaId', '==', tid)))
+      await Promise.all(proSnap.docs.map(d => deleteDoc(d.ref)))
+
+      // Borrar rotaciones (proyecto, parte, obra)
+      for (const tipo of ['proyecto', 'parte', 'obra']) {
+        try { await deleteDoc(doc(db, 'rotaciones', `${tid}_${tipo}`)) } catch {}
+      }
+
+      // Borrar temporada
+      await deleteDoc(doc(db, 'temporadas', tid))
+
+      await cargar()
+      setEditando(null)
+      setConfirmBorrar(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setBorrando(false)
+    }
+  }
+
   return (
     <div className="p-4 max-w-lg mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -95,47 +183,37 @@ export default function Temporadas() {
 
       <div className="space-y-3">
         {temporadas.map(t => {
-          const proyectos = proyectosPorTemporada[t.id] || []
+          const proyectos = t.proyectos || []
           return (
             <div key={t.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              {/* Cabecera temporada */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-800">{t.nombre}</p>
-                  {t.fechaInicio && (
-                    <p className="text-xs text-slate-400">
-                      {format(t.fechaInicio.toDate?.() || new Date(t.fechaInicio), "MMM yyyy", { locale: es })}
-                      {' – '}
-                      {t.fechaFin ? format(t.fechaFin.toDate?.() || new Date(t.fechaFin), "MMM yyyy", { locale: es }) : '—'}
-                    </p>
-                  )}
-                </div>
+              <div className="px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  {t.activa && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Activa</span>
-                  )}
-                  {t.activa && (
-                    <button
-                      onClick={() => navigate('/admin/proyectos/nuevo')}
-                      className="text-xs bg-blue-900 text-white px-2.5 py-1 rounded-lg font-medium"
-                    >
-                      + Proyecto
-                    </button>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{t.nombre}</p>
+                    {t.fechaInicio && (
+                      <p className="text-xs text-slate-400">
+                        {format(t.fechaInicio.toDate?.() || new Date(t.fechaInicio), "MMM yyyy", { locale: es })}
+                        {' – '}
+                        {t.fechaFin ? format(t.fechaFin.toDate?.() || new Date(t.fechaFin), "MMM yyyy", { locale: es }) : '—'}
+                      </p>
+                    )}
+                  </div>
+                  {t.activa && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium shrink-0">Activa</span>}
+                  <button onClick={() => abrirEditar(t)} className="text-xs text-slate-500 border border-slate-200 px-2.5 py-1 rounded-lg shrink-0">Editar</button>
                 </div>
+                {t.activa && (
+                  <button onClick={() => navigate('/admin/proyectos/nuevo')} className="mt-2 w-full text-xs bg-blue-900 text-white px-2.5 py-1.5 rounded-lg font-medium">
+                    + Nuevo proyecto
+                  </button>
+                )}
               </div>
 
-              {/* Proyectos de la temporada */}
               {proyectos.length === 0 ? (
                 <p className="text-xs text-slate-400 px-4 py-3 text-center">Sin proyectos</p>
               ) : (
                 <div className="divide-y divide-slate-50">
                   {proyectos.map(p => (
-                    <Link
-                      key={p.id}
-                      to={`/admin/proyectos/${p.id}`}
-                      className="flex items-center gap-3 px-4 py-2.5 active:bg-slate-50"
-                    >
+                    <Link key={p.id} to={`/admin/proyectos/${p.id}`} className="flex items-center gap-3 px-4 py-2.5 active:bg-slate-50">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-slate-700 truncate">{p.nombre}</p>
                         <p className="text-xs text-slate-400">
@@ -152,7 +230,73 @@ export default function Temporadas() {
         })}
       </div>
 
-      {/* Modal */}
+      {/* Modal editar temporada */}
+      {editando && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
+            <h3 className="font-semibold text-slate-800">Editar temporada</h3>
+            <div className="space-y-3">
+              <input
+                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"
+                placeholder="Nombre"
+                value={formEditar.nombre}
+                onChange={e => setFormEditar(f => ({ ...f, nombre: e.target.value }))}
+              />
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Fecha inicio</label>
+                <input type="date" className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"
+                  value={formEditar.fechaInicio} onChange={e => setFormEditar(f => ({ ...f, fechaInicio: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Fecha fin</label>
+                <input type="date" className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"
+                  value={formEditar.fechaFin} onChange={e => setFormEditar(f => ({ ...f, fechaFin: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => setEditando(null)} className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm">
+                Cancelar
+              </button>
+              <button onClick={guardarEditar} disabled={guardandoEditar || !formEditar.nombre}
+                className="flex-1 bg-blue-900 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50">
+                {guardandoEditar ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+
+            {!editando.activa && (
+              <button onClick={activarTemporada} disabled={guardandoEditar}
+                className="w-full bg-green-700 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50">
+                Marcar como activa
+              </button>
+            )}
+
+            {!confirmBorrar ? (
+              <button onClick={() => setConfirmBorrar(true)}
+                className="w-full text-red-600 border border-red-200 py-2.5 rounded-lg text-sm font-medium">
+                Borrar temporada
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-red-600 text-center">
+                  Se borrarán todos los proyectos, libranzas y rotaciones de esta temporada. ¿Seguro?
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmBorrar(false)} className="flex-1 border border-slate-300 text-slate-700 py-2 rounded-lg text-sm">
+                    Cancelar
+                  </button>
+                  <button onClick={borrarTemporada} disabled={borrando}
+                    className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+                    {borrando ? 'Borrando...' : 'Sí, borrar todo'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal nueva temporada */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -179,11 +323,8 @@ export default function Temporadas() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setModal(false)} className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm">Cancelar</button>
-                  <button
-                    onClick={() => setPaso(2)}
-                    disabled={!form.nombre || !form.fechaInicio}
-                    className="flex-1 bg-blue-900 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
+                  <button onClick={() => setPaso(2)} disabled={!form.nombre || !form.fechaInicio}
+                    className="flex-1 bg-blue-900 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50">
                     Siguiente →
                   </button>
                 </div>
@@ -217,11 +358,8 @@ export default function Temporadas() {
                 {error && <p className="text-red-600 text-sm">{error}</p>}
                 <div className="flex gap-2">
                   <button onClick={() => setPaso(1)} className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg text-sm">← Atrás</button>
-                  <button
-                    onClick={crearTemporada}
-                    disabled={guardando}
-                    className="flex-1 bg-blue-900 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
+                  <button onClick={crearTemporada} disabled={guardando}
+                    className="flex-1 bg-blue-900 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50">
                     {guardando ? 'Creando...' : 'Crear temporada'}
                   </button>
                 </div>

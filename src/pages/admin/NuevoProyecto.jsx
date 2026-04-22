@@ -24,6 +24,7 @@ export default function NuevoProyecto() {
     fechaInicio: '',
     fechaFin: '',
     musicosNecesarios: '',
+    refuerzos: '',
     permisosBajas: [],
     intercambios: [], // [{ musicoA: uid, musicoB: uid }] — A cede su turno a B
   })
@@ -31,7 +32,7 @@ export default function NuevoProyecto() {
   const [concierto, setConcierto] = useState({
     fecha: '',
     hora: '',
-    partes: [parteVacia(), parteVacia()],
+    partes: [parteVacia()],
   })
 
   const [libranzasCalculadas, setLibranzasCalculadas] = useState([])
@@ -72,6 +73,14 @@ export default function NuevoProyecto() {
       partes[pi] = { ...partes[pi], obras: partes[pi].obras.filter((_, i) => i !== oi) }
       return { ...c, partes }
     })
+  }
+
+  function addParte() {
+    setConcierto(c => ({ ...c, partes: [...c.partes, parteVacia()] }))
+  }
+
+  function removeParte(pi) {
+    setConcierto(c => ({ ...c, partes: c.partes.filter((_, i) => i !== pi) }))
   }
 
   function togglePermiso(uid) {
@@ -134,7 +143,7 @@ export default function NuevoProyecto() {
           const calc = await calcularLibranzas({
             temporadaId: t.id,
             tipo: TIPOS_LIBRANZA.PROYECTO,
-            totalSeccion: msDisponibles.length,
+            totalSeccion: msDisponibles.length + (parseInt(form.refuerzos) || 0),
             musicosNecesarios: mn,
             musicos: msDisponibles,
             yaLibrando: [],
@@ -167,7 +176,7 @@ export default function NuevoProyecto() {
             const calc = await calcularLibranzas({
               temporadaId: t.id,
               tipo: TIPOS_LIBRANZA.PARTE,
-              totalSeccion: msDisponibles.length,
+              totalSeccion: msDisponibles.length + (parseInt(form.refuerzos) || 0),
               musicosNecesarios: mn,
               musicos: msDisponibles,
               yaLibrando,
@@ -190,15 +199,16 @@ export default function NuevoProyecto() {
 
         for (let oi = 0; oi < parte.obras.length; oi++) {
           const obra = parte.obras[oi]
-          if (!obra.musicosNecesarios || !obra.titulo) continue
+          if (!obra.musicosNecesarios) continue
           const mn = parseInt(obra.musicosNecesarios)
+          const tituloObra = obra.titulo || `Obra ${oi + 1}`
           const yaLibrando = [...yaLibranProyecto, ...yaLibranParte]
           const numLibranzas = msDisponibles.length - mn - yaLibranProyecto.length - yaLibranParte.length
           if (numLibranzas > 0) {
             const calc = await calcularLibranzas({
               temporadaId: t.id,
               tipo: TIPOS_LIBRANZA.OBRA,
-              totalSeccion: msDisponibles.length,
+              totalSeccion: msDisponibles.length + (parseInt(form.refuerzos) || 0),
               musicosNecesarios: mn,
               musicos: msDisponibles,
               yaLibrando,
@@ -206,7 +216,7 @@ export default function NuevoProyecto() {
             })
             secciones.push({
               tipo: TIPOS_LIBRANZA.OBRA,
-              titulo: obra.titulo,
+              titulo: tituloObra,
               subtitulo: `Parte ${pi + 1}`,
               musicosNecesarios: mn,
               sugeridos: calc.asignados,
@@ -241,6 +251,7 @@ export default function NuevoProyecto() {
         fechaInicio: new Date(form.fechaInicio),
         fechaFin: form.fechaFin ? new Date(form.fechaFin) : new Date(form.fechaInicio),
         musicosNecesarios: form.musicosNecesarios ? parseInt(form.musicosNecesarios) : null,
+        refuerzos: form.refuerzos ? parseInt(form.refuerzos) : 0,
         permisosBajas: form.permisosBajas,
       }, admin.id, `${admin.nombre} ${admin.apellidos}`)
 
@@ -367,6 +378,12 @@ export default function NuevoProyecto() {
               placeholder="Ej: 12 — dejar vacío si todos tocan"
               value={form.musicosNecesarios} onChange={e => setForm(f => ({ ...f, musicosNecesarios: e.target.value }))} />
           </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Refuerzos (violinistas externos en este proyecto)</label>
+            <input type="number" min="0" max="10" className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm"
+              placeholder="0 — dejar vacío si no hay refuerzos"
+              value={form.refuerzos} onChange={e => setForm(f => ({ ...f, refuerzos: e.target.value }))} />
+          </div>
           {musicos.length > 0 && (
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Permisos / Bajas en este proyecto</label>
@@ -453,8 +470,11 @@ export default function NuevoProyecto() {
 
           {concierto.partes.map((parte, pi) => (
             <div key={pi} className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-700">Parte {pi + 1}</p>
+                {pi > 0 && (
+                  <button onClick={() => removeParte(pi)} className="text-xs text-red-500">Quitar parte</button>
+                )}
               </div>
               <div className="p-3 space-y-2">
                 <div>
@@ -492,6 +512,10 @@ export default function NuevoProyecto() {
               </div>
             </div>
           ))}
+
+          {concierto.partes.length < 2 && (
+            <button onClick={addParte} className="text-xs text-blue-700 font-medium">+ Añadir segunda parte</button>
+          )}
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
