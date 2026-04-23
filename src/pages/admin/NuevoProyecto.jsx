@@ -281,7 +281,7 @@ export default function NuevoProyecto() {
       // 3. Crear libranzas
       for (const sec of libranzasCalculadas) {
         if (sec.sugeridos.length === 0) continue
-        const libranzasACrear = sec.sugeridos.map(uid => ({
+        const libranzasACrear = sec.sugeridos.map((uid, idx) => ({
           musicoId: uid,
           proyectoId,
           temporadaId: temporada.id,

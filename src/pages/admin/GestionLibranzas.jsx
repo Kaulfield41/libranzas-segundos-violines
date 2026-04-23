@@ -6,6 +6,7 @@ import {
   crearLibranzasLote, eliminarLibranza
 } from '../../services/libranzas'
 import { calcularLibranzas, obtenerRotacion, TIPOS_LIBRANZA, PUESTOS } from '../../services/rotacion'
+import { calcularRetenes } from '../../utils/reten'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 
@@ -399,13 +400,17 @@ function SeccionLibranza({ seccion, nombreMusico, musicos, libranzasExistentes, 
       {/* Libranzas ya asignadas */}
       {yaAsignadas && (
         <div className="divide-y divide-slate-50">
-          {seccion.libranzas.map(lib => (
-            <div key={lib.id} className="flex items-center gap-2 px-4 py-2">
-              <span className="flex-1 text-sm text-slate-700">{nombreMusico(lib.musicoId)}</span>
-              {lib.motivo && <span className="text-xs text-slate-400 italic">{lib.motivo}</span>}
-              <button onClick={() => onEliminar(lib)} className="text-red-400 text-xs">✕</button>
-            </div>
-          ))}
+          {(() => {
+            const retenes = calcularRetenes(seccion.libranzas)
+            return seccion.libranzas.map(lib => (
+              <div key={lib.id} className="flex items-center gap-2 px-4 py-2">
+                <span className="flex-1 text-sm text-slate-700">{nombreMusico(lib.musicoId)}</span>
+                {lib.motivo && <span className="text-xs text-slate-400 italic">{lib.motivo}</span>}
+                {retenes.has(lib.id) && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">Retén</span>}
+                <button onClick={() => onEliminar(lib)} className="text-red-400 text-xs">✕</button>
+              </div>
+            ))
+          })()}
         </div>
       )}
 

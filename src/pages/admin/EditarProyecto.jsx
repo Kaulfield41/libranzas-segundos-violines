@@ -278,7 +278,7 @@ export default function EditarProyecto() {
       for (const sec of libranzasNuevas) {
         if (sec.sugeridos.length === 0) continue
         await crearLibranzasLote(
-          sec.sugeridos.map(uid => ({
+          sec.sugeridos.map((uid, idx) => ({
             musicoId: uid, proyectoId: id, temporadaId,
             tipo: sec.tipo, conciertoId: cId || null,
             ...sec.datos, musicosNecesarios: sec.musicosNecesarios, esPendienteResuelta: false,

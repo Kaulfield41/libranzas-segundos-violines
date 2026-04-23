@@ -17,6 +17,8 @@ import Historial from './pages/admin/Historial'
 import MusicoLayout from './pages/musico/MusicoLayout'
 import MisLibranzas from './pages/musico/MisLibranzas'
 import RotacionMusico from './pages/musico/Rotacion'
+import MiHistorial from './pages/musico/MiHistorial'
+import HistorialMusicoAdmin from './pages/admin/HistorialMusicoAdmin'
 
 function RutaProtegida({ children, soloAdmin = false }) {
   const { usuario, cargando } = useAuth()
@@ -50,6 +52,7 @@ export default function App() {
         <Route path="/musico" element={<RutaProtegida><MusicoLayout /></RutaProtegida>}>
           <Route index element={<MisLibranzas />} />
           <Route path="rotacion" element={<RotacionMusico />} />
+          <Route path="historial" element={<MiHistorial />} />
         </Route>
 
         {/* Rutas del admin */}
@@ -64,6 +67,7 @@ export default function App() {
           <Route path="proyectos/:id/libranzas" element={<GestionLibranzas />} />
           <Route path="rotacion" element={<Rotacion />} />
           <Route path="historial" element={<Historial />} />
+          <Route path="musicos/:id/historial" element={<HistorialMusicoAdmin />} />
           <Route path="mis-libranzas" element={<MisLibranzas />} />
         </Route>
 

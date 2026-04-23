@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { obtenerTemporadaActiva, obtenerProyectos, obtenerLibranzasProyecto, obtenerMusicos } from '../../services/libranzas'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { calcularRetenes } from '../../utils/reten'
 
 const TIPO_BADGE = {
   proyecto: 'bg-green-100 text-green-700',
@@ -101,25 +102,33 @@ export default function MisLibranzas() {
                   <p className="text-xs text-slate-400 px-4 py-3 text-center">Sin libranzas asignadas</p>
                 ) : (
                   <div className="divide-y divide-slate-50">
-                    {libs.map(lib => {
-                      const permiso = lib.esPermiso
-                        ? { motivo: lib.motivoPermiso }
-                        : (proyecto.permisosBajas || []).find(p => p.musicoId === lib.musicoId)
-                      return (
-                        <div key={lib.id} className="flex items-center gap-2 px-4 py-2.5">
-                          <span className="flex-1 text-sm text-slate-700">{nombreMusico(lib.musicoId)}</span>
-                          {permiso ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">
-                              {permiso.motivo ? `Permiso: ${permiso.motivo}` : 'Permiso / Baja'}
-                            </span>
-                          ) : (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BADGE[lib.tipo]}`}>
-                              {etiquetaLib(lib)}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {(() => {
+                      const retenes = calcularRetenes(libs)
+                      return libs.map(lib => {
+                        const permiso = lib.esPermiso
+                          ? { motivo: lib.motivoPermiso }
+                          : (proyecto.permisosBajas || []).find(p => p.musicoId === lib.musicoId)
+                        return (
+                          <div key={lib.id} className="flex items-center gap-2 px-4 py-2.5">
+                            <span className="flex-1 text-sm text-slate-700">{nombreMusico(lib.musicoId)}</span>
+                            {permiso ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">
+                                {permiso.motivo ? `Permiso: ${permiso.motivo}` : 'Permiso / Baja'}
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                {retenes.has(lib.id) && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">Retén</span>
+                                )}
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BADGE[lib.tipo]}`}>
+                                  {etiquetaLib(lib)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })
+                    })()}
                   </div>
                 )}
               </div>

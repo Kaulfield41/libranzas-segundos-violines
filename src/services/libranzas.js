@@ -129,6 +129,14 @@ export async function obtenerLibranzasProyecto(proyectoId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
+export async function obtenerHistorialLibranzasMusico(musicoId) {
+  const snap = await getDocs(
+    query(collection(db, 'libranzas'), where('musicoId', '==', musicoId))
+  )
+  const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  return docs.sort((a, b) => (b.fechaAsignacion?.toMillis?.() || 0) - (a.fechaAsignacion?.toMillis?.() || 0))
+}
+
 export async function obtenerLibranzasMusico(musicoId, temporadaId) {
   const snap = await getDocs(
     query(

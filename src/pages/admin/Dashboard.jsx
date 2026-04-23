@@ -21,6 +21,7 @@ const ESTADO_BADGE = {
   'sin-fecha': 'bg-slate-100 text-slate-400',
 }
 
+
 export default function Dashboard() {
   const [temporada, setTemporada] = useState(null)
   const [proyectos, setProyectos] = useState([])
@@ -84,7 +85,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <h3 className="text-sm font-semibold text-slate-700 mb-2">Próximos proyectos</h3>
+<h3 className="text-sm font-semibold text-slate-700 mb-2">Próximos proyectos</h3>
           {proximos.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6">No hay proyectos próximos.</p>
           ) : (

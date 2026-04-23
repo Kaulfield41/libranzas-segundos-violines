@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 const navItems = [
   { to: '/musico', label: 'Libranzas', icon: '🎻', end: true },
   { to: '/musico/rotacion', label: 'Rotación', icon: '🔄' },
+  { to: '/musico/historial', label: 'Historial', icon: '📋' },
 ]
 
 export default function MusicoLayout() {

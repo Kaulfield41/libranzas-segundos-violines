@@ -125,27 +125,26 @@ export default function Musicos() {
 
       <div className="space-y-2">
         {musicos.map(m => (
-          <button
-            key={m.id}
-            onClick={() => abrirEditar(m)}
-            className="w-full flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 text-left active:bg-slate-50"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800">{m.apellidos}, {m.nombre}</p>
-              <p className="text-xs text-slate-400">{m.email}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PUESTO_BADGE[m.puesto || 'normal']}`}>
-                {PUESTOS.find(p => p.value === m.puesto)?.label || 'Músico'}
-              </span>
-              {m.rol === 'admin' && (
-                <span className="text-xs text-blue-600 font-medium">Admin</span>
-              )}
-              {m.rol === 'observador' && (
-                <span className="text-xs text-slate-500 font-medium">Solo lectura</span>
-              )}
-            </div>
-          </button>
+          <div key={m.id} className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-4 py-3">
+            <button onClick={() => abrirEditar(m)} className="flex-1 flex items-center gap-3 text-left min-w-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800">{m.apellidos}, {m.nombre}</p>
+                <p className="text-xs text-slate-400">{m.email}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PUESTO_BADGE[m.puesto || 'normal']}`}>
+                  {PUESTOS.find(p => p.value === m.puesto)?.label || 'Músico'}
+                </span>
+                {m.rol === 'admin' && (
+                  <span className="text-xs text-blue-600 font-medium">Admin</span>
+                )}
+                {m.rol === 'observador' && (
+                  <span className="text-xs text-slate-500 font-medium">Solo lectura</span>
+                )}
+              </div>
+            </button>
+            <a href={`/admin/musicos/${m.id}/historial`} className="text-xs text-slate-400 hover:text-blue-700 px-1 shrink-0">📋</a>
+          </div>
         ))}
       </div>
 
